@@ -19,15 +19,30 @@ kotlin {
         else -> throw GradleException("Host OS is not supported in Kotlin/Native.")
     }
 
-    nativeTarget.apply {
+    linuxX64("linux") { // Define your target instead.
         binaries {
-            executable {
+            executable("cucumber") {
+                // Binary configuration.
                 entryPoint = "main"
             }
         }
     }
+    macosArm64("mac") {
+        binaries {
+            executable("cucumber") {
+                entryPoint = "main"
+            }
+        }
+    }
+
     sourceSets {
         val nativeMain by getting
         val nativeTest by getting
+        val macMain by getting {
+            dependsOn(nativeMain)
+        }
+        val linuxMain by getting {
+            dependsOn(nativeMain)
+        }
     }
 }
