@@ -1,5 +1,6 @@
 plugins {
     kotlin("multiplatform") version "1.8.0"
+    kotlin("plugin.serialization") version "1.8.10"
 }
 
 group = "me.oniichan"
@@ -50,6 +51,10 @@ kotlin {
             dependsOn(nativeMain)
         }
 
-        val jvmMain by getting
+        val jvmMain by getting {
+            dependencies {
+                implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.4.1")
+            }
+        }
     }
 }
