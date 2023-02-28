@@ -10,6 +10,9 @@ repositories {
 }
 
 kotlin {
+    jvm {
+        withJava()
+    }
     val hostOs = System.getProperty("os.name")
     val isMingwX64 = hostOs.startsWith("Windows")
     val nativeTarget = when {
@@ -36,7 +39,9 @@ kotlin {
     }
 
     sourceSets {
-        val nativeMain by getting
+        val nativeMain by getting {
+
+        }
         val nativeTest by getting
         val macMain by getting {
             dependsOn(nativeMain)
@@ -44,5 +49,7 @@ kotlin {
         val linuxMain by getting {
             dependsOn(nativeMain)
         }
+
+        val jvmMain by getting
     }
 }
