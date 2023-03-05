@@ -105,6 +105,7 @@ fun main() {
 	versions["1.18.2"] = 9008
 	versions["1.18.1"] = 8857
 	versions["1.18"] = 8830
+	versions["1.16.5"] = 0
 	versions["1.12.2"] = 6756
 
 	ZipFile("Winter_2022-1.1.1.zip").use { zip ->
@@ -158,7 +159,7 @@ fun main() {
 		// cant go on main site
 		val id_path = mod.value.file.fileID.toString()
 		// https://beta.curseforge.com/api/v1/mods/345425/files\?pageIndex\=0\&pageSize\=1\&sort\=dateCreated\&sortDescending\=true\&gameVersionId=
-		val details = "https://beta.curseforge.com/api/v1/mods/${mod.value.file.projectID}/files?pageIndex=0&pageSize=1&sort=dateCreated&sortDescending=true&gameVersionId=${versions[manifest!!.minecraft.version]}"
+		val details = "https://beta.curseforge.com/api/v1/mods/${mod.value.file.projectID}/files?pageIndex=0&sort=dateCreated&sortDescending=true&gameVersionId=${versions[manifest!!.minecraft.version]}"
 		println(details)
 		val doc_files = Jsoup.connect(details).ignoreContentType(true).get()
 		println(doc_files.body().text())
