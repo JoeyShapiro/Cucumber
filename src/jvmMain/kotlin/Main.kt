@@ -2,7 +2,12 @@
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.json.Json
+import me.tongfei.progressbar.ProgressBar
 import org.jsoup.Jsoup
+import java.net.URL
+import java.nio.charset.StandardCharsets
+import java.nio.file.Files
+import java.nio.file.Paths
 import java.util.zip.ZipFile
 
 @Serializable
@@ -13,12 +18,12 @@ data class Manifest (
 	val name: String,
 	val version: String,
 	val author: String,
-	val files: List<File>,
+	val files: List<ModFile>,
 	val overrides: String
 )
 
 @Serializable
-data class File (
+data class ModFile (
 	val projectID: Long,
 	val fileID: Long,
 	val required: Boolean
@@ -44,7 +49,7 @@ data class ModListed (
 
 data class Mod (
 	val listed: ModListed,
-	val file: File
+	val file: ModFile
 )
 
 @Serializable
@@ -153,29 +158,35 @@ fun main() {
 	manifest!!.files.forEachIndexed { i, file -> mods[file.projectID] = Mod(modlist[i], file) }
 
 	// download each mod
-	for	(mod in mods) {
-		// they think theyre so clever
-		// maybe they are
-		// cant go on main site
-		val id_path = mod.value.file.fileID.toString()
-		// https://beta.curseforge.com/api/v1/mods/345425/files\?pageIndex\=0\&pageSize\=1\&sort\=dateCreated\&sortDescending\=true\&gameVersionId=
-		val details = "https://beta.curseforge.com/api/v1/mods/${mod.value.file.projectID}/files?pageIndex=0&sort=dateCreated&sortDescending=true&gameVersionId=${versions[manifest!!.minecraft.version]}"
-		println(details)
-		val doc_files = Jsoup.connect(details).ignoreContentType(true).get()
-		println(doc_files.body().text())
-		val json = Json { ignoreUnknownKeys = true; isLenient = true }
-		val test = json.decodeFromString<CurseFiles>(doc_files.body().text())
-		for (t in test.data) {
-			println("${t.id}: ${t.fileName}")
-			if (t.id == mod.value.file.fileID) {
-				println("$url${id_path.subSequence(0, 4)}/${id_path.subSequence(4, 7)}/${t.fileName}")
-				val file = Jsoup.connect("$url${id_path.subSequence(0, 4)}/${id_path.subSequence(4, 7)}/${t.fileName}")
-					.ignoreContentType(true).execute();
-				println("${t.fileLength} == ${file.bodyAsBytes().size}")
+	ProgressBar("Downloading", mods.size.toLong()).use { pb ->
+		for	(mod in mods) {
+			pb.setExtraMessage(mod.value.listed.text)
+			// they think theyre so clever
+			// maybe they are
+			// cant go on main site
+			val id_path = mod.value.file.fileID.toString()
+			val details = "https://beta.curseforge.com/api/v1/mods/${mod.value.file.projectID}/files?pageIndex=0&sort=dateCreated&sortDescending=true&gameVersionId=${versions[manifest!!.minecraft.version]}"
+			val doc_files = Jsoup.connect(details).ignoreContentType(true).get()
+			val json = Json { ignoreUnknownKeys = true; isLenient = true }
+			val files = json.decodeFromString<CurseFiles>(doc_files.body().text())
+			val file = files.data.firstOrNull { it.id == mod.value.file.fileID }
+			if (file == null) {
+				println("Could not find ${mod.value.listed.text}")
+				pb.close()
+				return
 			}
-		}
+			// https://mediafilez.forgecdn.net/files/3914/491/balm-3.2.0%2B0.jar
+			// https://mediafilez.forgecdn.net/files/3914/491/balm-3.2.0%252B0.jar
+			// https://mediafilez.forgecdn.net/files/3914/491/balm-3.2.0%252B0.jar
+			val encFilename = java.net.URLEncoder.encode(file.fileName, StandardCharsets.UTF_8.toString())
+			val jarUrl = URL("$url${id_path.subSequence(0, 4)}/${id_path.subSequence(4, 7)}/${encFilename}")
+			val n = jarUrl.openStream().use { Files.copy(it, Paths.get("./${file.fileName}")) }
+			// dont actually need jsoup. also, fails to encode properly
+//			val jar = Jsoup.connect("$url${id_path.subSequence(0, 4)}/${id_path.subSequence(4, 7)}/${encFilename}")
+//				.ignoreContentType(true).execute();
 
-		//val doc = Jsoup.connect(mod.value.listed.link+"/download/"+mod.value.file.fileID+"/file")
-		break
+			pb.step()
+//			break
+		}
 	}
 }
