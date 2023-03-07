@@ -87,6 +87,24 @@ data class Pagination (
 	val totalCount: Long
 )
 
+private val json = Json { ignoreUnknownKeys = true; isLenient = true }
+
+fun mcVersions(): MutableMap<String, Int> {
+	val versions = mutableMapOf<String, Int>()
+
+	versions["1.19.3"] = 9550
+	versions["1.19.2"] = 9366
+	versions["1.19.1"] = 9259
+	versions["1.19"] = 9186
+	versions["1.18.2"] = 9008
+	versions["1.18.1"] = 8857
+	versions["1.18"] = 8830
+	versions["1.16.5"] = 0
+	versions["1.12.2"] = 6756
+
+	return versions
+}
+
 fun main() {
 	println("Hello, Kotlin/Java!")
 	println("bitch")
@@ -100,24 +118,11 @@ fun main() {
 	// the list of versions is from checking the different versions of a mod available on different versions
 	// the api call to get mod details is from the same page (files of a mod)
 	// the download is a bypass of cloudflare
-	val versions = mutableMapOf<String, Int>()
-	versions["1.19.3"] = 9550
-	versions["1.19.2"] = 9366
-	versions["1.19.1"] = 9259
-	versions["1.19"] = 9186
-	versions["1.18.2"] = 9008
-	versions["1.18.1"] = 8857
-	versions["1.18"] = 8830
-	versions["1.16.5"] = 0
-	versions["1.12.2"] = 6756
+	val versions = mcVersions()
+
 
 	ZipFile("Winter_2022-1.1.1.zip").use { zip ->
 		zip.entries().asSequence().forEach { entry ->
-//			zip.getInputStream(entry).use { input ->
-//				File(entry.name).outputStream().use { output ->
-//					input.copyTo(output)
-//				}
-//			}
 			if (entry.name == "manifest.json" || entry.name == "modlist.html") {
 				println("found ${entry.name}")
 				val stream = zip.getInputStream(entry)
@@ -156,37 +161,33 @@ fun main() {
 	manifest!!.files.forEachIndexed { i, file -> mods[file.projectID] = Mod(modlist[i], file) }
 
 	// download each mod
+	println("Downloading ${mods.size} mods")
 	ProgressBar("Downloading", mods.size.toLong()).use { pb ->
 		for	(mod in mods) {
 			pb.extraMessage = mod.value.listed.text
-			// they think theyre so clever
-			// maybe they are
-			// cant go on main site
-			val id_path = mod.value.file.fileID.toString()
-			val details = "https://beta.curseforge.com/api/v1/mods/${mod.value.file.projectID}/files?pageIndex=0&pageSize=100sort=dateCreated&sortDescending=true&gameVersionId=${versions[manifest!!.minecraft.version]}"
-			val input = URL(details).openStream()
-			val reader = InputStreamReader(input, "UTF-8")
-			val json = Json { ignoreUnknownKeys = true; isLenient = true }
-			val files = json.decodeFromString<CurseFiles>(reader.readText())
-			reader.close()
-			input.close()
-			var file = files.data.firstOrNull { it.id == mod.value.file.fileID }
-			if (file == null) {
-				file = files.data[0]
-				println("Could not find ${mod.value.listed.text}. Using ${files.data[0].fileName} instead.")
-			}
-			// https://mediafilez.forgecdn.net/files/3914/491/balm-3.2.0%2B0.jar
-			// https://mediafilez.forgecdn.net/files/3914/491/balm-3.2.0%252B0.jar
-			// https://mediafilez.forgecdn.net/files/3914/491/balm-3.2.0%252B0.jar
-			val encFilename = java.net.URLEncoder.encode(file.fileName, StandardCharsets.UTF_8.toString())
-			val jarUrl = URL("$url${id_path.subSequence(0, 4)}/${id_path.subSequence(4, 7)}/${encFilename}")
-			//val n = jarUrl.openStream().use { Files.copy(it, Paths.get("./${file.fileName}")) }
-			// dont actually need jsoup. also, fails to encode properly
-//			val jar = Jsoup.connect("$url${id_path.subSequence(0, 4)}/${id_path.subSequence(4, 7)}/${encFilename}")
-//				.ignoreContentType(true).execute();
 
+			// get all the versions available for this mod
+			val details = "https://beta.curseforge.com/api/v1/mods/${mod.value.file.projectID}/files?pageIndex=0&pageSize=100sort=dateCreated&sortDescending=true&gameVersionId=${versions[manifest!!.minecraft.version]}"
+			var files: CurseFiles? = null
+			URL(details).openStream().use { input ->
+				InputStreamReader(input, "UTF-8").use { reader ->
+					files = json.decodeFromString<CurseFiles>(reader.readText())
+				}
+			}
+
+			// find the file needed
+			var file = files!!.data.firstOrNull { it.id == mod.value.file.fileID }
+			if (file == null) {
+				file = files!!.data[0]
+				println("Could not find ${mod.value.listed.text}. Using ${files!!.data[0].fileName} instead.")
+			}
+
+			// download the file
+			val encFilename = java.net.URLEncoder.encode(file.fileName, StandardCharsets.UTF_8.toString())
+			val idPath = mod.value.file.fileID.toString()
+			val jarUrl = URL("$url${idPath.subSequence(0, 4)}/${idPath.subSequence(4, 7)}/${encFilename}")
+			//val n = jarUrl.openStream().use { Files.copy(it, Paths.get("./${file.fileName}")) }
 			pb.step()
-//			break
 		}
 	}
 }
