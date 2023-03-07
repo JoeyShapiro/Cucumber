@@ -3,12 +3,11 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.json.Json
 import me.tongfei.progressbar.ProgressBar
-import org.jsoup.Jsoup
+import java.io.InputStreamReader
 import java.net.URL
 import java.nio.charset.StandardCharsets
-import java.nio.file.Files
-import java.nio.file.Paths
 import java.util.zip.ZipFile
+
 
 @Serializable
 data class Manifest (
@@ -61,7 +60,6 @@ data class CurseFiles (
 @Serializable
 data class Datum (
 	val id: Long,
-	val changelogBody: String,
 	val childFileType: Long,
 	val dateCreated: String,
 	val dateModified: String,
@@ -160,27 +158,29 @@ fun main() {
 	// download each mod
 	ProgressBar("Downloading", mods.size.toLong()).use { pb ->
 		for	(mod in mods) {
-			pb.setExtraMessage(mod.value.listed.text)
+			pb.extraMessage = mod.value.listed.text
 			// they think theyre so clever
 			// maybe they are
 			// cant go on main site
 			val id_path = mod.value.file.fileID.toString()
-			val details = "https://beta.curseforge.com/api/v1/mods/${mod.value.file.projectID}/files?pageIndex=0&sort=dateCreated&sortDescending=true&gameVersionId=${versions[manifest!!.minecraft.version]}"
-			val doc_files = Jsoup.connect(details).ignoreContentType(true).get()
+			val details = "https://beta.curseforge.com/api/v1/mods/${mod.value.file.projectID}/files?pageIndex=0&pageSize=100sort=dateCreated&sortDescending=true&gameVersionId=${versions[manifest!!.minecraft.version]}"
+			val input = URL(details).openStream()
+			val reader = InputStreamReader(input, "UTF-8")
 			val json = Json { ignoreUnknownKeys = true; isLenient = true }
-			val files = json.decodeFromString<CurseFiles>(doc_files.body().text())
-			val file = files.data.firstOrNull { it.id == mod.value.file.fileID }
+			val files = json.decodeFromString<CurseFiles>(reader.readText())
+			reader.close()
+			input.close()
+			var file = files.data.firstOrNull { it.id == mod.value.file.fileID }
 			if (file == null) {
-				println("Could not find ${mod.value.listed.text}")
-				pb.close()
-				return
+				file = files.data[0]
+				println("Could not find ${mod.value.listed.text}. Using ${files.data[0].fileName} instead.")
 			}
 			// https://mediafilez.forgecdn.net/files/3914/491/balm-3.2.0%2B0.jar
 			// https://mediafilez.forgecdn.net/files/3914/491/balm-3.2.0%252B0.jar
 			// https://mediafilez.forgecdn.net/files/3914/491/balm-3.2.0%252B0.jar
 			val encFilename = java.net.URLEncoder.encode(file.fileName, StandardCharsets.UTF_8.toString())
 			val jarUrl = URL("$url${id_path.subSequence(0, 4)}/${id_path.subSequence(4, 7)}/${encFilename}")
-			val n = jarUrl.openStream().use { Files.copy(it, Paths.get("./${file.fileName}")) }
+			//val n = jarUrl.openStream().use { Files.copy(it, Paths.get("./${file.fileName}")) }
 			// dont actually need jsoup. also, fails to encode properly
 //			val jar = Jsoup.connect("$url${id_path.subSequence(0, 4)}/${id_path.subSequence(4, 7)}/${encFilename}")
 //				.ignoreContentType(true).execute();
