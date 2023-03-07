@@ -6,6 +6,8 @@ import me.tongfei.progressbar.ProgressBar
 import java.io.InputStreamReader
 import java.net.URL
 import java.nio.charset.StandardCharsets
+import java.nio.file.Files
+import java.nio.file.Paths
 import java.util.zip.ZipFile
 
 
@@ -105,7 +107,9 @@ fun mcVersions(): MutableMap<String, Int> {
 	return versions
 }
 
-fun main() {
+fun main(args: Array<String>) {
+	// TODO how does project folder work in CLI
+	// uses given folder
 	println("Hello, Kotlin/Java!")
 	println("bitch")
 	var manifest: Manifest? = null // isnt initialized, makes sense
@@ -119,6 +123,8 @@ fun main() {
 	// the api call to get mod details is from the same page (files of a mod)
 	// the download is a bypass of cloudflare
 	val versions = mcVersions()
+	// folder for the project
+	val outFolder = ""
 
 
 	ZipFile("Winter_2022-1.1.1.zip").use { zip ->
@@ -189,5 +195,25 @@ fun main() {
 			//val n = jarUrl.openStream().use { Files.copy(it, Paths.get("./${file.fileName}")) }
 			pb.step()
 		}
+	}
+
+	// TODO for now assume that its forge
+	// bypasses adfoc
+	// maybe find a way to use adfoc for payment
+	// and the flex
+	// https://maven.minecraftforge.net/net/minecraftforge/forge/1.18.2-40.1.68/forge-1.18.2-40.1.68-installer.jar
+	println("Downloading ${manifest!!.minecraft.modLoaders.size} modloaders")
+	for (modloader in manifest!!.minecraft.modLoaders) {
+		// check the type
+		val parts = modloader.id.split('-')
+		if (parts[0] != "forge") {
+			println("${parts[0]} is currently not suppored")
+			continue
+		}
+
+		// download the file
+		val jarName = "${modloader.id}-installer.jar"
+		val jarUrl = URL("https://maven.minecraftforge.net/net/minecraftforge/forge/${parts[1]}/${jarName}")
+		jarUrl.openStream().use { Files.copy(it, Paths.get("./${jarName}")) }
 	}
 }
