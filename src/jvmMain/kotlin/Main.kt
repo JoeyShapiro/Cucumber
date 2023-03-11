@@ -9,6 +9,7 @@ import java.nio.charset.StandardCharsets
 import java.nio.file.Files
 import java.nio.file.Paths
 import java.util.zip.ZipFile
+import kotlin.io.path.Path
 
 
 @Serializable
@@ -107,11 +108,61 @@ fun mcVersions(): MutableMap<String, Int> {
 	return versions
 }
 
+fun parseArgs(args: Array<String>): MutableMap<String, String> {
+	val parsedArgs = mutableMapOf<String, String>()
+	var flagged = false
+
+	for (i in args.indices) {
+		// if the prev was a flag, then
+		if (flagged) {
+			flagged = false
+			continue
+		}
+
+		// if a flag, insert the values in the dict
+		if (args[i].startsWith("--")) {
+			parsedArgs[args[i].removePrefix("--")] = args[i+1]
+			flagged = true
+		} else { // if just loose value
+			parsedArgs[i.toString()] = args[i]
+		}
+	}
+
+	return parsedArgs
+}
+
+fun aptInput(question: String): Boolean {
+	print("$question [Y/n]: ")
+	val input = readlnOrNull()
+	val chosen = if (input.isNullOrEmpty()) "y" else input
+	return chosen.startsWith("y", true)
+}
+
 fun main(args: Array<String>) {
-	// TODO how does project folder work in CLI
-	// uses given folder
 	println("Hello, Kotlin/Java!")
 	println("bitch")
+	// TODO how does project folder work in CLI
+	// use out as project folder
+	// create the folder for ther server project
+	val argMap = parseArgs(args)
+	val project = argMap["out"] ?: "."
+
+	// create the output folder
+	// try as value and try when
+	try {
+		Files.createDirectory(Paths.get(project))
+	} catch (e: java.nio.file.FileAlreadyExistsException) {
+		if (Path(project).toFile().listFiles()!!.isNotEmpty()) { // most things dont say the folder is empty
+			println("The selected folder is not empty.")
+			println("You can continue with the current folder, or create a subfolder.")
+
+			if (!aptInput("Would you like to continue anyway")) {
+				// TODO add new folder
+				throw NotImplementedError("Adding a new folder is not currently implemented.")
+			}
+		}
+	}
+
 	var manifest: Manifest? = null // isnt initialized, makes sense
 	var modlist: List<ModListed> = mutableListOf<ModListed>()
 	val url = "https://mediafilez.forgecdn.net/files/"
@@ -124,8 +175,6 @@ fun main(args: Array<String>) {
 	// the download is a bypass of cloudflare
 	val versions = mcVersions()
 	// folder for the project
-	val outFolder = ""
-
 
 	ZipFile("Winter_2022-1.1.1.zip").use { zip ->
 		zip.entries().asSequence().forEach { entry ->
@@ -192,7 +241,7 @@ fun main(args: Array<String>) {
 			val encFilename = java.net.URLEncoder.encode(file.fileName, StandardCharsets.UTF_8.toString())
 			val idPath = mod.value.file.fileID.toString()
 			val jarUrl = URL("$url${idPath.subSequence(0, 4)}/${idPath.subSequence(4, 7)}/${encFilename}")
-			//val n = jarUrl.openStream().use { Files.copy(it, Paths.get("./${file.fileName}")) }
+			//val n = jarUrl.openStream().use { Files.copy(it, Paths.get("${project}/${file.fileName}")) }
 			pb.step()
 		}
 	}
@@ -212,8 +261,8 @@ fun main(args: Array<String>) {
 		}
 
 		// download the file
-		val jarName = "${modloader.id}-installer.jar"
-		val jarUrl = URL("https://maven.minecraftforge.net/net/minecraftforge/forge/${parts[1]}/${jarName}")
-		jarUrl.openStream().use { Files.copy(it, Paths.get("./${jarName}")) }
+		val jarName = "${parts[0]}-${manifest!!.minecraft.version}-${parts[1]}-installer.jar"
+		val jarUrl = URL("https://maven.minecraftforge.net/net/minecraftforge/forge/${manifest!!.minecraft.version}-${parts[1]}/${jarName}")
+		jarUrl.openStream().use { Files.copy(it, Paths.get("${project}/${jarName}")) }
 	}
 }
