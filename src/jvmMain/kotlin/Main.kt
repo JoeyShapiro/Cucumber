@@ -1,3 +1,4 @@
+package com.garden.joeyshapiro
 
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.decodeFromString
@@ -5,7 +6,9 @@ import kotlinx.serialization.json.Json
 import me.tongfei.progressbar.ProgressBar
 import java.io.InputStreamReader
 import java.net.URL
+import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
+import java.nio.file.FileAlreadyExistsException
 import java.nio.file.Files
 import java.nio.file.Paths
 import java.util.zip.ZipFile
@@ -112,6 +115,7 @@ fun parseArgs(args: Array<String>): MutableMap<String, String> {
 	val parsedArgs = mutableMapOf<String, String>()
 	var flagged = false
 
+	// TODO invalid args
 	for (i in args.indices) {
 		// if the prev was a flag, then
 		if (flagged) {
@@ -142,16 +146,18 @@ fun main(args: Array<String>) {
 	println("Hello, Kotlin/Java!")
 	println("bitch")
 	// TODO how does project folder work in CLI
+	// TODO update
 	// use out as project folder
 	// create the folder for ther server project
 	val argMap = parseArgs(args)
+	val modpackZip = argMap["0"] ?: "" // TODO something better
 	val project = argMap["out"] ?: "."
 
 	// create the output folder
 	// try as value and try when
 	try {
 		Files.createDirectory(Paths.get(project))
-	} catch (e: java.nio.file.FileAlreadyExistsException) {
+	} catch (e: FileAlreadyExistsException) {
 		if (Path(project).toFile().listFiles()!!.isNotEmpty()) { // most things dont say the folder is empty
 			println("The selected folder is not empty.")
 			println("You can continue with the current folder, or create a subfolder.")
@@ -165,7 +171,7 @@ fun main(args: Array<String>) {
 
 	var manifest: Manifest? = null // isnt initialized, makes sense
 	var modlist: List<ModListed> = mutableListOf<ModListed>()
-	val url = "https://mediafilez.forgecdn.net/files/"
+	val url = "https://mediafilez.forgecdn.net/files"
 	// best i can do is hard code. should get site to work
 	// TODO find how it gets list, or get page
 	// this is not super stable but it works
@@ -176,7 +182,7 @@ fun main(args: Array<String>) {
 	val versions = mcVersions()
 	// folder for the project
 
-	ZipFile("Winter_2022-1.1.1.zip").use { zip ->
+	ZipFile(modpackZip).use { zip ->
 		zip.entries().asSequence().forEach { entry ->
 			if (entry.name == "manifest.json" || entry.name == "modlist.html") {
 				println("found ${entry.name}")
@@ -215,8 +221,16 @@ fun main(args: Array<String>) {
 	val mods = mutableMapOf<Long, Mod>()
 	manifest!!.files.forEachIndexed { i, file -> mods[file.projectID] = Mod(modlist[i], file) }
 
+	// create mods folder
+	try {
+		Files.createDirectory(Paths.get("$project/mods"))
+	} catch (e: FileAlreadyExistsException) {
+		println("mods folder already created") // TODO throw if not this
+	}
+
 	// download each mod
 	println("Downloading ${mods.size} mods")
+	// TODO timer for each mod, accept, size, ...
 	ProgressBar("Downloading", mods.size.toLong()).use { pb ->
 		for	(mod in mods) {
 			pb.extraMessage = mod.value.listed.text
@@ -238,10 +252,14 @@ fun main(args: Array<String>) {
 			}
 
 			// download the file
-			val encFilename = java.net.URLEncoder.encode(file.fileName, StandardCharsets.UTF_8.toString())
+			val encFilename = URLEncoder.encode(file.fileName, StandardCharsets.UTF_8.toString())
 			val idPath = mod.value.file.fileID.toString()
-			val jarUrl = URL("$url${idPath.subSequence(0, 4)}/${idPath.subSequence(4, 7)}/${encFilename}")
-			//val n = jarUrl.openStream().use { Files.copy(it, Paths.get("${project}/${file.fileName}")) }
+			// get the id folders it's in
+			// this is because they trim 0's
+			val major = idPath.subSequence(0, 4).toString().toInt()
+			val minor = idPath.subSequence(4, 7).toString().toInt()
+			val jarUrl = URL("$url/$major/$minor/$encFilename")
+			val n = jarUrl.openStream().use { Files.copy(it, Paths.get("$project/mods/${file.fileName}")) }
 			pb.step()
 		}
 	}
@@ -262,7 +280,10 @@ fun main(args: Array<String>) {
 
 		// download the file
 		val jarName = "${parts[0]}-${manifest!!.minecraft.version}-${parts[1]}-installer.jar"
+		println("Downloading $jarName")
 		val jarUrl = URL("https://maven.minecraftforge.net/net/minecraftforge/forge/${manifest!!.minecraft.version}-${parts[1]}/${jarName}")
 		jarUrl.openStream().use { Files.copy(it, Paths.get("${project}/${jarName}")) }
 	}
+
+	println("The mod pack has successfully been created")
 }
