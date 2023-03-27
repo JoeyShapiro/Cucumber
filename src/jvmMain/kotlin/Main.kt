@@ -105,7 +105,7 @@ fun mcVersions(): MutableMap<String, Int> {
 	versions["1.18.2"] = 9008
 	versions["1.18.1"] = 8857
 	versions["1.18"] = 8830
-	versions["1.16.5"] = 0
+	versions["1.16.5"] = 0 // TODO add
 	versions["1.12.2"] = 6756
 
 	return versions
@@ -151,7 +151,7 @@ fun main(args: Array<String>) {
 	// create the folder for ther server project
 	val argMap = parseArgs(args)
 	val modpackZip = argMap["0"] ?: "" // TODO something better
-	val project = argMap["out"] ?: "."
+	val project = argMap["out"] ?: "." // TODO check for -o or something
 
 	// create the output folder
 	// try as value and try when
@@ -159,7 +159,7 @@ fun main(args: Array<String>) {
 		Files.createDirectory(Paths.get(project))
 	} catch (e: FileAlreadyExistsException) {
 		if (Path(project).toFile().listFiles()!!.isNotEmpty()) { // most things dont say the folder is empty
-			println("The selected folder is not empty.")
+			println("$project is not empty.")
 			println("You can continue with the current folder, or create a subfolder.")
 
 			if (!aptInput("Would you like to continue anyway")) {
@@ -173,14 +173,12 @@ fun main(args: Array<String>) {
 	var modlist: List<ModListed> = mutableListOf<ModListed>()
 	val url = "https://mediafilez.forgecdn.net/files"
 	// best i can do is hard code. should get site to work
-	// TODO find how it gets list, or get page
 	// this is not super stable but it works
 	// the list is used and nothing should have reason to change
 	// the list of versions is from checking the different versions of a mod available on different versions
 	// the api call to get mod details is from the same page (files of a mod)
 	// the download is a bypass of cloudflare
 	val versions = mcVersions()
-	// folder for the project
 
 	ZipFile(modpackZip).use { zip ->
 		zip.entries().asSequence().forEach { entry ->
@@ -194,7 +192,6 @@ fun main(args: Array<String>) {
 					println("Found manifest for ${manifest!!.name} with ${manifest!!.files.size} mods")
 				} else if (entry.name == "modlist.html") {
 					val html = String(content)
-					// TODO for now use regex, when i do validation use jsoup
 					// go to files, check pid, download. do multiple at once
 					val regex = "<a href=\"(.+)\">(.+)</a>".toRegex()
 					modlist = regex.findAll(html).map {
@@ -230,7 +227,7 @@ fun main(args: Array<String>) {
 
 	// download each mod
 	println("Downloading ${mods.size} mods")
-	// TODO timer for each mod, accept, size, ...
+	// TODO timer for each mod, accept insteads, size, ..., throws for same file, access, ...
 	ProgressBar("Downloading", mods.size.toLong()).use { pb ->
 		for	(mod in mods) {
 			pb.extraMessage = mod.value.listed.text
@@ -261,10 +258,10 @@ fun main(args: Array<String>) {
 			val jarUrl = URL("$url/$major/$minor/$encFilename")
 			val n = jarUrl.openStream().use { Files.copy(it, Paths.get("$project/mods/${file.fileName}")) }
 			pb.step()
+			break
 		}
 	}
 
-	// TODO for now assume that its forge
 	// bypasses adfoc
 	// maybe find a way to use adfoc for payment
 	// and the flex
@@ -274,7 +271,7 @@ fun main(args: Array<String>) {
 		// check the type
 		val parts = modloader.id.split('-')
 		if (parts[0] != "forge") {
-			println("${parts[0]} is currently not suppored")
+			println("${parts[0]} is currently not supported")
 			continue
 		}
 
@@ -284,6 +281,8 @@ fun main(args: Array<String>) {
 		val jarUrl = URL("https://maven.minecraftforge.net/net/minecraftforge/forge/${manifest!!.minecraft.version}-${parts[1]}/${jarName}")
 		jarUrl.openStream().use { Files.copy(it, Paths.get("${project}/${jarName}")) }
 	}
+
+	// TODO do more stuff
 
 	println("The mod pack has successfully been created")
 }
