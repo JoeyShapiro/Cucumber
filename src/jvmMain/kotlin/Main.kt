@@ -286,20 +286,27 @@ fun main(args: Array<String>) {
 
 	// install the server
 	// java -jar forge.jar --installServer "./"
-//	val result = ProcessBuilder("java", "-version")
-//		.redirectOutput(ProcessBuilder.Redirect.INHERIT)
-//		.redirectError(ProcessBuilder.Redirect.INHERIT)
-//		.start()
-//		.waitFor()
-//	assertThat(result).isEqualTo(0)
 	println("Installing Forge Server")
-	var result = ProcessBuilder("java", "-jar", "$project/$jarForge", "--installServer", project).start().waitFor()
-	println(result)
+	val result = ProcessBuilder("java", "-jar", "$project/$jarForge", "--installServer", project)
+		.redirectOutput(ProcessBuilder.Redirect.INHERIT)
+		.redirectError(ProcessBuilder.Redirect.INHERIT)
+		.start().waitFor()
+
+	if (result != 0) {
+		println("Server install failed")
+	}
 
 	// dry run forge launcher (they give a run.sh :D)
-	result = ProcessBuilder("$project/run.sh").start().waitFor()
-	println(result)
+	ProcessBuilder("$project/run.sh").start().waitFor()
 	println("You must sign the EULA file before starting the server")
+
+	// option to maybe sign eula
+
+	// add settings to run.sh; but dont really need too, cause they do it
+
+	// cleanup
+	Files.deleteIfExists(Paths.get("$project/$jarForge"))
+	// dont delete log, they may want it
 
 	println("The mod pack has successfully been created")
 }
