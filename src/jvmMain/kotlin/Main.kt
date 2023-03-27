@@ -265,6 +265,7 @@ fun main(args: Array<String>) {
 	// and the flex
 	// https://maven.minecraftforge.net/net/minecraftforge/forge/1.18.2-40.1.68/forge-1.18.2-40.1.68-installer.jar
 	println("Downloading ${manifest!!.minecraft.modLoaders.size} modloaders")
+	var jarForge = ""
 	for (modloader in manifest!!.minecraft.modLoaders) {
 		// check the type
 		val parts = modloader.id.split('-')
@@ -274,15 +275,21 @@ fun main(args: Array<String>) {
 		}
 
 		// download the file
-		val jarName = "${parts[0]}-${manifest!!.minecraft.version}-${parts[1]}-installer.jar"
-		println("Downloading $jarName")
-		val jarUrl = URL("https://maven.minecraftforge.net/net/minecraftforge/forge/${manifest!!.minecraft.version}-${parts[1]}/${jarName}")
-		jarUrl.openStream().use { Files.copy(it, Paths.get("${project}/${jarName}")) }
+		jarForge = "${parts[0]}-${manifest!!.minecraft.version}-${parts[1]}-installer.jar"
+		println("Downloading $jarForge")
+		val jarUrl = URL("https://maven.minecraftforge.net/net/minecraftforge/forge/${manifest!!.minecraft.version}-${parts[1]}/${jarForge}")
+		jarUrl.openStream().use { Files.copy(it, Paths.get("${project}/${jarForge}")) }
 	}
 
-	// dry run forge launcher
+	// install the server
+	// java -jar forge.jar --installServer
+	var result = ProcessBuilder("java", "-jar", "$project/$jarForge", "--installServer").start().waitFor()
+	println(result)
 
-	// create run.sh
+	// dry run forge launcher (they give a run.sh :D)
+	result = ProcessBuilder("$project/run.sh").start().waitFor()
+	println(result)
+	println("You must sign the EULA file before starting the server")
 
 	println("The mod pack has successfully been created")
 }
