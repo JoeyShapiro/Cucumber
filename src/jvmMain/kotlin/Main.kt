@@ -145,13 +145,12 @@ fun aptInput(question: String): Boolean {
 fun main(args: Array<String>) {
 	println("Hello, Kotlin/Java!")
 	println("bitch")
-	// TODO how does project folder work in CLI
 	// TODO update
 	// use out as project folder
-	// create the folder for ther server project
+	// create the folder for their server project
 	val argMap = parseArgs(args)
 	val modpackZip = argMap["0"] ?: "" // TODO something better
-	val project = argMap["out"] ?: "." // TODO check for -o or something
+	val project = argMap["out"] ?: argMap["o"] ?: "."
 
 	// create the output folder
 	// try as value and try when
@@ -222,7 +221,7 @@ fun main(args: Array<String>) {
 	try {
 		Files.createDirectory(Paths.get("$project/mods"))
 	} catch (e: FileAlreadyExistsException) {
-		println("mods folder already created") // TODO throw if not this
+		println("mods folder already created")
 	}
 
 	// download each mod
@@ -282,7 +281,9 @@ fun main(args: Array<String>) {
 		jarUrl.openStream().use { Files.copy(it, Paths.get("${project}/${jarName}")) }
 	}
 
-	// TODO do more stuff
+	// dry run forge launcher
+
+	// create run.sh
 
 	println("The mod pack has successfully been created")
 }
