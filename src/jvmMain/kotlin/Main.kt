@@ -155,6 +155,7 @@ fun main(args: Array<String>) {
 	val argMap = parseArgs(args)
 	val modpackZip = argMap["0"] ?: "" // TODO something better
 	var project = argMap["out"] ?: argMap["o"] ?: "."
+	val shouldSign = argMap["sign"] ?: argMap["s"] ?: ""
 
 	// create the output folder
 	// try as value and try when
@@ -302,7 +303,7 @@ fun main(args: Array<String>) {
 
 	// fix run script
 	// good enough; i feel you can have it run anywhere though
-	val text = File("$project/run.sh").readLines()
+	var text = File("$project/run.sh").readLines()
 	File("$project/run.sh").printWriter().use {
 		for (line in text) {
 			if (line.startsWith("java")) {
@@ -318,14 +319,25 @@ fun main(args: Array<String>) {
 
 	// dry run forge launcher (they give a run.sh :D)
 	ProcessBuilder("$project/run.sh").start().waitFor()
-	println("You must sign the EULA file before starting the server")
 
 	// option to maybe sign eula
-
+	if (shouldSign.isNotBlank()) {
+		text = File("$project/eula.txt").readLines()
+		File("$project/eula.txt").printWriter().use {
+			for (line in text) {
+				if (line.startsWith("eula")) {
+					it.println("eula=true")
+				} else {
+					it.println(line)
+				}
+			}
+		}
+	} else {
+		println("You must sign the EULA file before starting the server")
+	}
 
 	// cleanup
 	Files.deleteIfExists(Paths.get("$project/$jarForge"))
-	// dont delete log, they may want it
 
 	println("The mod pack has successfully been created")
 }
