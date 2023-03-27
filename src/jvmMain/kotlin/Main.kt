@@ -154,7 +154,7 @@ fun main(args: Array<String>) {
 	// create the folder for their server project
 	val argMap = parseArgs(args)
 	val modpackZip = argMap["0"] ?: "" // TODO something better
-	val project = argMap["out"] ?: argMap["o"] ?: "."
+	var project = argMap["out"] ?: argMap["o"] ?: "."
 
 	// create the output folder
 	// try as value and try when
@@ -166,8 +166,9 @@ fun main(args: Array<String>) {
 			println("You can continue with the current folder, or create a subfolder.")
 
 			if (!aptInput("Would you like to continue anyway")) {
-				// TODO add new folder
-				throw NotImplementedError("Adding a new folder is not currently implemented.")
+				project = "$project/$modpackZip"
+				println("Creating a new directory for the modpack at $project")
+				Files.createDirectory(Paths.get(project))
 			}
 		}
 	}
@@ -215,9 +216,11 @@ fun main(args: Array<String>) {
 	// go to to mapped files of item in json
 	// (optional) check pid matches
 	// go to download of fid
-	// TODO check pid
-	// TODO unwrap
-	println("${modlist.size} == ${manifest!!.files.size}")
+	if (modlist.size != manifest!!.files.size) {
+		println("Modlist and Manifest have different mods")
+		return
+	}
+
 	val mods = mutableMapOf<Long, Mod>()
 	manifest!!.files.forEachIndexed { i, file -> mods[file.projectID] = Mod(modlist[i], file) }
 
