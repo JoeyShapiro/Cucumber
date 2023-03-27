@@ -66,7 +66,7 @@ data class CurseFiles (
 @Serializable
 data class Datum (
 	val id: Long,
-	val childFileType: Long,
+	//val childFileType: Long,
 	val dateCreated: String,
 	val dateModified: String,
 	val fileLength: Long,
@@ -75,12 +75,12 @@ data class Datum (
 
 	val gameVersionTypeIds: List<Long>,
 
-	val projectId: Long,
+	//val projectId: Long,
 
 	val releaseType: Long,
-	val status: Long,
+	//val status: Long,
 	val totalDownloads: Long,
-	val uploadSource: Long,
+	//val uploadSource: Long,
 	val hasServerPack: Boolean,
 	val additionalFilesCount: Long,
 	val isEarlyAccessContent: Boolean
@@ -257,7 +257,6 @@ fun main(args: Array<String>) {
 			val jarUrl = URL("$url/$major/$minor/$encFilename")
 			val n = jarUrl.openStream().use { Files.copy(it, Paths.get("$project/mods/${file.fileName}")) }
 			pb.step()
-			break
 		}
 	}
 
