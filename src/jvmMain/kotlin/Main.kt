@@ -127,6 +127,9 @@ fun parseArgs(args: Array<String>): MutableMap<String, String> {
 		if (args[i].startsWith("--")) {
 			parsedArgs[args[i].removePrefix("--")] = args[i+1]
 			flagged = true
+		} else if (args[i].startsWith("-")) {
+			parsedArgs[args[i].removePrefix("-")] = args[i+1]
+			flagged = true
 		} else { // if just loose value
 			parsedArgs[i.toString()] = args[i]
 		}
@@ -282,8 +285,15 @@ fun main(args: Array<String>) {
 	}
 
 	// install the server
-	// java -jar forge.jar --installServer
-	var result = ProcessBuilder("java", "-jar", "$project/$jarForge", "--installServer").start().waitFor()
+	// java -jar forge.jar --installServer "./"
+//	val result = ProcessBuilder("java", "-version")
+//		.redirectOutput(ProcessBuilder.Redirect.INHERIT)
+//		.redirectError(ProcessBuilder.Redirect.INHERIT)
+//		.start()
+//		.waitFor()
+//	assertThat(result).isEqualTo(0)
+	println("Installing Forge Server")
+	var result = ProcessBuilder("java", "-jar", "$project/$jarForge", "--installServer", project).start().waitFor()
 	println(result)
 
 	// dry run forge launcher (they give a run.sh :D)
