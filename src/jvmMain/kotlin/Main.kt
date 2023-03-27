@@ -4,6 +4,7 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.json.Json
 import me.tongfei.progressbar.ProgressBar
+import java.io.File
 import java.io.InputStreamReader
 import java.net.URL
 import java.net.URLEncoder
@@ -296,13 +297,28 @@ fun main(args: Array<String>) {
 		println("Server install failed")
 	}
 
+	// fix run script
+	// good enough; i feel you can have it run anywhere though
+	val text = File("$project/run.sh").readLines()
+	File("$project/run.sh").printWriter().use {
+		for (line in text) {
+			if (line.startsWith("java")) {
+				it.println("dir=\"\$( cd \"\$( dirname \"\${BASH_SOURCE[0]}\" )\" && pwd)\"")
+				it.println("pushd \$dir")
+				it.println(line)
+				it.println("popd")
+			} else { // if we dont care about the line
+				it.println(line)
+			}
+		}
+	}
+
 	// dry run forge launcher (they give a run.sh :D)
 	ProcessBuilder("$project/run.sh").start().waitFor()
 	println("You must sign the EULA file before starting the server")
 
 	// option to maybe sign eula
 
-	// add settings to run.sh; but dont really need too, cause they do it
 
 	// cleanup
 	Files.deleteIfExists(Paths.get("$project/$jarForge"))
