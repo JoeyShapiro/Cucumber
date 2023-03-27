@@ -15,7 +15,6 @@ import java.nio.file.Paths
 import java.util.zip.ZipFile
 import kotlin.io.path.Path
 
-
 @Serializable
 data class Manifest (
 	val minecraft: Minecraft,
@@ -106,37 +105,10 @@ fun mcVersions(): MutableMap<String, Int> {
 	versions["1.18.2"] = 9008
 	versions["1.18.1"] = 8857
 	versions["1.18"] = 8830
-	versions["1.16.5"] = 0 // TODO add
+	versions["1.16.5"] = 8203
 	versions["1.12.2"] = 6756
 
 	return versions
-}
-
-fun parseArgs(args: Array<String>): MutableMap<String, String> {
-	val parsedArgs = mutableMapOf<String, String>()
-	var flagged = false
-
-	// TODO invalid args
-	for (i in args.indices) {
-		// if the prev was a flag, then
-		if (flagged) {
-			flagged = false
-			continue
-		}
-
-		// if a flag, insert the values in the dict
-		if (args[i].startsWith("--")) {
-			parsedArgs[args[i].removePrefix("--")] = args[i+1]
-			flagged = true
-		} else if (args[i].startsWith("-")) {
-			parsedArgs[args[i].removePrefix("-")] = args[i+1]
-			flagged = true
-		} else { // if just loose value
-			parsedArgs[i.toString()] = args[i]
-		}
-	}
-
-	return parsedArgs
 }
 
 fun aptInput(question: String): Boolean {
@@ -152,10 +124,29 @@ fun main(args: Array<String>) {
 	// TODO update
 	// use out as project folder
 	// create the folder for their server project
-	val argMap = parseArgs(args)
+	val flagParser = FlagParser(args)
+	//// old way
+	val argMap = flagParser.parseArgs(args)
+	println(flagParser.FlagNone(0, "", ""))
 	val modpackZip = argMap["0"] ?: "" // TODO something better
 	var project = argMap["out"] ?: argMap["o"] ?: "."
-	val shouldSign = argMap["sign"] ?: argMap["s"] ?: ""
+	// parses each flag in code
+	// if flag is found, set the value
+	// at any point, if 'help' is seen, print help, and nothing else
+	val shouldSign = flagParser.FlagBool("sign", "s", "If set, will sign eula.txt.")
+	// this is required to help, don't like it though. no i have to, how else would it exit
+	val helpText = flagParser.maybeHelp()
+	if (helpText != null) {
+		println(helpText)
+		return
+	}
+
+	//// seems the best way, but not fun
+	// flagParser.NewFlagString()
+	// val flags = flagParser.parse()
+	// val shouldSign = flags["sign']
+	// flagParser.flags(new Flag{}, new Flag{})
+	//
 
 	// create the output folder
 	// try as value and try when
@@ -214,7 +205,7 @@ fun main(args: Array<String>) {
 
 	// (optional) create a map of pid->href (check page for pid) 1:1
 	//? they should be in order though
-	// go to to mapped files of item in json
+	// go to mapped files of item in json
 	// (optional) check pid matches
 	// go to download of fid
 	if (modlist.size != manifest!!.files.size) {
@@ -321,7 +312,7 @@ fun main(args: Array<String>) {
 	ProcessBuilder("$project/run.sh").start().waitFor()
 
 	// option to maybe sign eula
-	if (shouldSign.isNotBlank()) {
+	if (shouldSign) {
 		text = File("$project/eula.txt").readLines()
 		File("$project/eula.txt").printWriter().use {
 			for (line in text) {
