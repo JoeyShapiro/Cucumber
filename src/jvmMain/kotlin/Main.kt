@@ -135,19 +135,12 @@ fun main(args: Array<String>) {
 		return
 	}
 
-	//// seems the best way, but not fun
-	// flagParser.NewFlagString()
-	// val flags = flagParser.parse()
-	// val shouldSign = flags["sign']
-	// flagParser.flags(new Flag{}, new Flag{})
-	//
-
 	// create the output folder
 	// try as value and try when
 	try {
 		Files.createDirectory(Paths.get(project))
 	} catch (e: FileAlreadyExistsException) {
-		if (Path(project).toFile().listFiles()!!.isNotEmpty()) { // most things dont say the folder is empty
+		if (Path(project).toFile().listFiles()!!.isNotEmpty()) { // most things don't say the folder is empty
 			println("$project is not empty.")
 			println("You can continue with the current folder, or create a subfolder.")
 
@@ -159,11 +152,11 @@ fun main(args: Array<String>) {
 		}
 	}
 
-	var manifest: Manifest? = null // isnt initialized, makes sense
+	var manifest: Manifest? = null // isn't initialized, makes sense
 	var modlist: List<ModListed> = mutableListOf<ModListed>()
 	val url = "https://mediafilez.forgecdn.net/files"
-	// best i can do is hard code. should get site to work
-	// this is not super stable but it works
+	// best I can do is hard code. should get site to work
+	// this is not super stable, but it works
 	// the list is used and nothing should have reason to change
 	// the list of versions is from checking the different versions of a mod available on different versions
 	// the api call to get mod details is from the same page (files of a mod)
@@ -226,7 +219,7 @@ fun main(args: Array<String>) {
 
 			// get all the versions available for this mod
 			val details = "https://beta.curseforge.com/api/v1/mods/${mod.value.file.projectID}/files?pageIndex=0&pageSize=100sort=dateCreated&sortDescending=true&gameVersionId=${versions[manifest!!.minecraft.version]}"
-			var files: CurseFiles? = null
+			lateinit var files: CurseFiles
 			URL(details).openStream().use { input ->
 				InputStreamReader(input, "UTF-8").use { reader ->
 					files = json.decodeFromString<CurseFiles>(reader.readText())
@@ -234,10 +227,10 @@ fun main(args: Array<String>) {
 			}
 
 			// find the file needed
-			var file = files!!.data.firstOrNull { it.id == mod.value.file.fileID }
+			var file = files.data.firstOrNull { it.id == mod.value.file.fileID }
 			if (file == null) {
-				file = files!!.data[0]
-				println("Could not find ${mod.value.listed.text}. Using ${files!!.data[0].fileName} instead.")
+				file = files.data[0]
+				println("Could not find ${mod.value.listed.text}. Using ${files.data[0].fileName} instead.")
 			}
 
 			// download the file
@@ -287,7 +280,7 @@ fun main(args: Array<String>) {
 	}
 
 	// fix run script
-	// good enough; i feel you can have it run anywhere though
+	// good enough; I feel you can have it run anywhere though
 	var text = File("$project/run.sh").readLines()
 	File("$project/run.sh").printWriter().use {
 		for (line in text) {
@@ -296,7 +289,7 @@ fun main(args: Array<String>) {
 				it.println("pushd \$dir")
 				it.println(line)
 				it.println("popd")
-			} else { // if we dont care about the line
+			} else { // if we don't care about the line
 				it.println(line)
 			}
 		}
