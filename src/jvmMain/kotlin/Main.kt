@@ -15,6 +15,14 @@ import java.util.zip.ZipFile
 import kotlin.io.path.Path
 
 private val json = Json { ignoreUnknownKeys = true; isLenient = true }
+private const val ANSI_RESET = "\u001B[0m"
+private const val ANSI_RED = "\u001B[31m" // error
+private const val ANSI_GRAY = "\u001B[2m" // dull, not mine
+private const val ANSI_YELLOW = "\u001B[33m" // warning
+private const val ANSI_GREEN = "\u001B[32m" // all good
+private const val ANSI_BLUE = "\u001B[34m" // user input, should be default
+private const val ANSI_CYAN = "\u001B[36m" // user input
+private const val ANSI_VAPOR = "\u001B[1;3;5;35;46m" // vapor effect bold;italic;slow blink;foreground magenta;background cyan wanted font, but eh
 
 fun mcVersions(): MutableMap<String, Int> {
 	val versions = mutableMapOf<String, Int>()
@@ -33,22 +41,25 @@ fun mcVersions(): MutableMap<String, Int> {
 }
 
 fun aptInput(question: String): Boolean {
-	print("$question [Y/n]: ")
+	print("$ANSI_CYAN$question [Y/n]: ")
 	val input = readlnOrNull()
 	val chosen = if (input.isNullOrEmpty()) "y" else input
+	print(ANSI_RESET)
 	return chosen.startsWith("y", true)
 }
 
 fun aptOption(question: String, choices: List<String>, default: Int?): Int? { // maybe use objects and determine what to print; mapping isnt hard
 	// print the list
 	choices.forEachIndexed { i, choice ->
-		println("$i - $choice")
+		val color = if (i == default) ANSI_BLUE else ANSI_CYAN
+		println("$color$i - $choice")
 	}
 
 	// make a choice
 	print("$question [$default]: ")
 	val input = readlnOrNull()
 
+	print(ANSI_RESET)
 	return if (input.isNullOrEmpty()) null else input.toIntOrNull()
 }
 
@@ -69,7 +80,7 @@ fun main(args: Array<String>) {
 
 	// needed stuff
 	println("Hello, Kotlin/Java!")
-	println("not vaporware, bitch")
+	println(ANSI_VAPOR + "not vaporware, bitch" + ANSI_RESET)
 
 	// create the output folder
 	// try as value and try when
@@ -77,6 +88,7 @@ fun main(args: Array<String>) {
 		Files.createDirectory(Paths.get(project))
 	} catch (e: FileAlreadyExistsException) {
 		if (Path(project).toFile().listFiles()!!.isNotEmpty()) { // most things don't say the folder is empty
+			print(ANSI_CYAN)
 			println("$project is not empty.")
 			println("You can continue with the current folder, or create a subfolder.")
 
@@ -85,6 +97,7 @@ fun main(args: Array<String>) {
 				println("Creating a new directory for the modpack at $project")
 				Files.createDirectory(Paths.get(project))
 			}
+			print(ANSI_RESET)
 		}
 	}
 
@@ -128,7 +141,7 @@ fun main(args: Array<String>) {
 
 	// unwrap manifest, only say something if it could _not_ be found
 	if (possibleManifest == null) {
-		println("Error: Could not find manifest")
+		println(ANSI_RED + "Error: Could not find manifest" + ANSI_RESET)
 		return
 	} else { // don't care what they think, its set
 		manifest = possibleManifest!!
@@ -140,7 +153,7 @@ fun main(args: Array<String>) {
 	// (optional) check pid matches
 	// go to download of fid
 	if (modlist.size != manifest.files.size) {
-		println("Error: Modlist and Manifest have different mods")
+		println(ANSI_RED + "Error: Modlist and Manifest have different mods" + ANSI_RESET)
 		return
 	}
 
@@ -151,7 +164,7 @@ fun main(args: Array<String>) {
 	try {
 		Files.createDirectory(Paths.get("$project/mods"))
 	} catch (e: FileAlreadyExistsException) { // accounts for update
-		println("mods folder already created")
+		println(ANSI_GRAY + "mods folder already created" + ANSI_RESET)
 	}
 
 	// download each mod
@@ -192,11 +205,11 @@ fun main(args: Array<String>) {
 			try {
 				val n = jarUrl.openStream().use { Files.copy(it, Paths.get("$project/mods/${file.fileName}")) }
 				if (n != file.fileLength) {
-					println("Warning: ${file.fileName} Downloaded ${n}B, but should be ${file.fileLength}B")
+					println(ANSI_YELLOW + "Warning: ${file.fileName} Downloaded ${n}B, but should be ${file.fileLength}B" + ANSI_RESET)
 				}
 			} catch (e: FileAlreadyExistsException) {
 				if (!shouldUpdate) {
-					println("Already downloaded ${file.fileName}")
+					println(ANSI_GRAY + "Already downloaded ${file.fileName}" + ANSI_RESET)
 				}
 			}
 
@@ -216,7 +229,7 @@ fun main(args: Array<String>) {
 			// check the type
 			val parts = modloader.id.split('-')
 			if (parts[0] != "forge") {
-				println("${parts[0]} is currently not supported")
+				println(ANSI_RED + "${parts[0]} is currently not supported" + ANSI_RESET)
 				continue
 			}
 
@@ -230,13 +243,15 @@ fun main(args: Array<String>) {
 		// install the server
 		// java -jar forge.jar --installServer "./"
 		println("Installing Forge Server")
+		print(ANSI_GRAY)
 		val result = ProcessBuilder("java", "-jar", "$project/$jarForge", "--installServer", project)
 			.redirectOutput(ProcessBuilder.Redirect.INHERIT)
 			.redirectError(ProcessBuilder.Redirect.INHERIT)
 			.start().waitFor()
+		print(ANSI_RESET)
 
 		if (result != 0) {
-			println("Server install failed")
+			println(ANSI_RED + "Server install failed" + ANSI_RESET)
 		}
 
 		// fix run script
@@ -271,15 +286,15 @@ fun main(args: Array<String>) {
 				}
 			}
 		} else {
-			println("You must sign the EULA file before starting the server")
+			println(ANSI_YELLOW + "You must sign the EULA file before starting the server" + ANSI_RESET)
 		}
 
 		// cleanup
 		Files.deleteIfExists(Paths.get("$project/$jarForge"))
 
-		println("The mod pack has successfully been created")
+		println(ANSI_GREEN + "The mod pack has successfully been created" + ANSI_RESET)
 	} else {
-		println("The mod pack has successfully been updated")
+		println(ANSI_GREEN + "The mod pack has successfully been updated" + ANSI_RESET)
 	}
 	println("https://github.com/JoeyShapiro/Cucumber")
 }
