@@ -69,7 +69,7 @@ fun main(args: Array<String>) {
 
 	// needed stuff
 	println("Hello, Kotlin/Java!")
-	println("bitch")
+	println("not vaporware, bitch")
 
 	// create the output folder
 	// try as value and try when
@@ -281,5 +281,5 @@ fun main(args: Array<String>) {
 	} else {
 		println("The mod pack has successfully been updated")
 	}
-
+	println("https://github.com/JoeyShapiro/Cucumber")
 }
