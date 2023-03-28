@@ -34,7 +34,11 @@ class FlagParser(programArgs: Array<String>) {
 		var helpText = ""
 
 		for (flag in flags) {
-			helpText += flag.key + "\n"
+			helpText += "${flag.key}\n"
+			helpText += "\tflag/shorthand: --${flag.value.flag} | -${flag.value.shorthand}\n"
+			helpText += "\tdefault: ${flag.value.default}\n"
+			helpText += "\tdescription: ${flag.value.help}\n"
+			helpText += "\n"
 		}
 
 		return helpText
@@ -60,20 +64,8 @@ class FlagParser(programArgs: Array<String>) {
 	}
 
 	fun parse(): String? {
-		var value: String? = null
-
-		// check for invalid stuff
-		value = checkInvalid()
-		//return if (value != null) value else maybeHelp()
-		if (value != null)
-			return value
-
-		// check for help
-		value = maybeHelp()
-		if (value != null)
-			return value
-
-		return value
+		// check for invalid stuff, or help, or nothing
+		return checkInvalid() ?: maybeHelp()
 	}
 
 	fun flagNone(index: Int, default: String, help: String): String {
