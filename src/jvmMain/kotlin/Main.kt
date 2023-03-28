@@ -126,6 +126,7 @@ fun main(args: Array<String>) {
 	val modpackZip = flagParser.flagNone(0, "", "The zip of the modpack import.")
 	var project = flagParser.flagString("out", "o", ".", "The project folder to use. If stuff inside, will create subfolder.")
 	val shouldSign = flagParser.flagBool("sign", "s", "If set, will sign eula.txt.")
+	val shouldUpdate = flagParser.flagBool("update", "u", "If set, will update the selected modpack")
 	// check for help or invalid, print and return
 	val helpText = flagParser.parse()
 	if (helpText != null) {
@@ -154,7 +155,8 @@ fun main(args: Array<String>) {
 		}
 	}
 
-	var manifest: Manifest? = null // isn't initialized, makes sense
+	var possibleManifest: Manifest? = null // isn't initialized, makes sense. _might_ not be there; or throw saying it's not set yet
+	lateinit var manifest: Manifest
 	var modlist: List<ModListed> = mutableListOf()
 	val url = "https://mediafilez.forgecdn.net/files"
 	// best I can do is hard code. should get site to work
@@ -173,8 +175,7 @@ fun main(args: Array<String>) {
 				val content = stream.readAllBytes()
 
 				if (entry.name == "manifest.json") {
-					manifest = Json.decodeFromString<Manifest>(String(content))
-					println("Found manifest for ${manifest!!.name} with ${manifest!!.files.size} mods")
+					possibleManifest = Json.decodeFromString<Manifest>(String(content))
 				} else if (entry.name == "modlist.html") {
 					val html = String(content)
 					// go to files, check pid, download. do multiple at once
@@ -192,18 +193,26 @@ fun main(args: Array<String>) {
 		}
 	}
 
+	// unwrap manifest, only say something if it could _not_ be found
+	if (possibleManifest == null) {
+		println("Error: Could not find manifest")
+		return
+	} else { // don't care what they think, its set
+		manifest = possibleManifest!!
+	}
+
 	// (optional) create a map of pid->href (check page for pid) 1:1
 	//? they should be in order though
 	// go to mapped files of item in json
 	// (optional) check pid matches
 	// go to download of fid
-	if (modlist.size != manifest!!.files.size) {
+	if (modlist.size != manifest.files.size) {
 		println("Modlist and Manifest have different mods")
 		return
 	}
 
 	val mods = mutableMapOf<Long, Mod>()
-	manifest!!.files.forEachIndexed { i, file -> mods[file.projectID] = Mod(modlist[i], file) }
+	manifest.files.forEachIndexed { i, file -> mods[file.projectID] = Mod(modlist[i], file) }
 
 	// create mods folder
 	try {
@@ -220,7 +229,7 @@ fun main(args: Array<String>) {
 			pb.extraMessage = mod.value.listed.text
 
 			// get all the versions available for this mod
-			val details = "https://beta.curseforge.com/api/v1/mods/${mod.value.file.projectID}/files?pageIndex=0&pageSize=100sort=dateCreated&sortDescending=true&gameVersionId=${versions[manifest!!.minecraft.version]}"
+			val details = "https://beta.curseforge.com/api/v1/mods/${mod.value.file.projectID}/files?pageIndex=0&pageSize=100sort=dateCreated&sortDescending=true&gameVersionId=${versions[manifest.minecraft.version]}"
 			lateinit var files: CurseFiles
 			URL(details).openStream().use { input ->
 				InputStreamReader(input, "UTF-8").use { reader ->
@@ -257,9 +266,10 @@ fun main(args: Array<String>) {
 	// maybe find a way to use adfoc for payment
 	// and the flex
 	// https://maven.minecraftforge.net/net/minecraftforge/forge/1.18.2-40.1.68/forge-1.18.2-40.1.68-installer.jar
-	println("Downloading ${manifest!!.minecraft.modLoaders.size} modloaders")
-	var jarForge = ""
-	for (modloader in manifest!!.minecraft.modLoaders) {
+	println("Downloading ${manifest.minecraft.modLoaders.size} modloaders")
+	// late init can be used instead of null, but not val
+	lateinit var jarForge: String
+	for (modloader in manifest.minecraft.modLoaders) {
 		// check the type
 		val parts = modloader.id.split('-')
 		if (parts[0] != "forge") {
@@ -268,9 +278,9 @@ fun main(args: Array<String>) {
 		}
 
 		// download the file
-		jarForge = "${parts[0]}-${manifest!!.minecraft.version}-${parts[1]}-installer.jar"
+		jarForge = "${parts[0]}-${manifest.minecraft.version}-${parts[1]}-installer.jar"
 		println("Downloading $jarForge")
-		val jarUrl = URL("https://maven.minecraftforge.net/net/minecraftforge/forge/${manifest!!.minecraft.version}-${parts[1]}/${jarForge}")
+		val jarUrl = URL("https://maven.minecraftforge.net/net/minecraftforge/forge/${manifest.minecraft.version}-${parts[1]}/${jarForge}")
 		jarUrl.openStream().use { Files.copy(it, Paths.get("${project}/${jarForge}")) }
 	}
 
