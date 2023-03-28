@@ -1,6 +1,5 @@
 package com.garden.joeyshapiro
 
-import kotlinx.serialization.Serializable
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.json.Json
 import me.tongfei.progressbar.ProgressBar
@@ -14,84 +13,6 @@ import java.nio.file.Files
 import java.nio.file.Paths
 import java.util.zip.ZipFile
 import kotlin.io.path.Path
-
-@Serializable
-data class Manifest (
-	val minecraft: Minecraft,
-	val manifestType: String,
-	val manifestVersion: Long,
-	val name: String,
-	val version: String,
-	val author: String,
-	val files: List<ModFile>,
-	val overrides: String
-)
-
-@Serializable
-data class ModFile (
-	val projectID: Long,
-	val fileID: Long,
-	val required: Boolean
-)
-
-@Serializable
-data class Minecraft (
-	val version: String,
-	val modLoaders: List<ModLoader>
-)
-
-@Serializable
-data class ModLoader (
-	val id: String,
-	val primary: Boolean
-)
-
-data class ModListed (
-	val full: String,
-	val link: String,
-	val text: String
-)
-
-data class Mod (
-	val listed: ModListed,
-	val file: ModFile
-)
-
-@Serializable
-data class CurseFiles (
-	val data: List<Datum>,
-	val pagination: Pagination
-)
-
-@Serializable
-data class Datum (
-	val id: Long,
-	//val childFileType: Long,
-	val dateCreated: String,
-	val dateModified: String,
-	val fileLength: Long,
-	val fileName: String,
-	val gameVersions: List<String>,
-
-	val gameVersionTypeIds: List<Long>,
-
-	//val projectId: Long,
-
-	val releaseType: Long,
-	//val status: Long,
-	val totalDownloads: Long,
-	//val uploadSource: Long,
-	val hasServerPack: Boolean,
-	val additionalFilesCount: Long,
-	val isEarlyAccessContent: Boolean
-)
-
-@Serializable
-data class Pagination (
-	val index: Long,
-	val pageSize: Long,
-	val totalCount: Long
-)
 
 private val json = Json { ignoreUnknownKeys = true; isLenient = true }
 
