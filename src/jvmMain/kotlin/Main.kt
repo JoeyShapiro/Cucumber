@@ -39,6 +39,19 @@ fun aptInput(question: String): Boolean {
 	return chosen.startsWith("y", true)
 }
 
+fun aptOption(question: String, choices: List<String>, default: Int?): Int? { // maybe use objects and determine what to print; mapping isnt hard
+	// print the list
+	choices.forEachIndexed { i, choice ->
+		println("$i - $choice")
+	}
+
+	// make a choice
+	print("$question [$default]: ")
+	val input = readlnOrNull()
+
+	return if (input.isNullOrEmpty()) null else input.toIntOrNull()
+}
+
 fun main(args: Array<String>) {
 	val flagParser = FlagParser(args)
 	// parses each flag in code
@@ -127,7 +140,7 @@ fun main(args: Array<String>) {
 	// (optional) check pid matches
 	// go to download of fid
 	if (modlist.size != manifest.files.size) {
-		println("Modlist and Manifest have different mods")
+		println("Error: Modlist and Manifest have different mods")
 		return
 	}
 
@@ -143,7 +156,6 @@ fun main(args: Array<String>) {
 
 	// download each mod
 	println("Downloading ${mods.size} mods")
-	// TODO timer for each mod, accept insteads, size, ..., throws for same file, access, ...
 	ProgressBar("Downloading", mods.size.toLong()).use { pb ->
 		for	(mod in mods) {
 			pb.extraMessage = mod.value.listed.text
@@ -160,8 +172,10 @@ fun main(args: Array<String>) {
 			// find the file needed
 			var file = files.data.firstOrNull { it.id == mod.value.file.fileID }
 			if (file == null) {
-				file = files.data[0]
-				println("Could not find ${mod.value.listed.text}. Using ${files.data[0].fileName} instead.")
+				println("Could not find ${mod.value.listed.text}")
+				val i = aptOption("Please one of the following as a replacement", files.data.map { it.fileName }, 0)!!
+				file = files.data[i]
+				println("Using ${files.data[i].fileName} instead")
 			}
 
 			// download the file
@@ -173,6 +187,8 @@ fun main(args: Array<String>) {
 			val minor = idPath.subSequence(4, 7).toString().toInt()
 			val jarUrl = URL("$url/$major/$minor/$encFilename")
 			// can not easily show each byte being downloaded, not worth it, maybe another time
+			// could copy each byte and update, but files not big enough, cost so much to do; just copy _not_ download
+			// for i in n file.write(i); pb.step()
 			try {
 				val n = jarUrl.openStream().use { Files.copy(it, Paths.get("$project/mods/${file.fileName}")) }
 				if (n != file.fileLength) {
