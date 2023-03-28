@@ -40,7 +40,7 @@ class FlagParser(programArgs: Array<String>) {
 		return helpText
 	}
 
-	fun maybeHelp(): String? {
+	private fun maybeHelp(): String? {
 		var shouldHelp = false
 
 		// check if the help flag is set
@@ -52,11 +52,7 @@ class FlagParser(programArgs: Array<String>) {
 		}
 
 		// return help or null, if none needed
-		if (shouldHelp) {
-			return getHelp()
-		} else {
-			return null
-		}
+		return if (shouldHelp) getHelp() else null
 	}
 
 	private fun checkInvalid(): String? {
@@ -68,6 +64,7 @@ class FlagParser(programArgs: Array<String>) {
 
 		// check for invalid stuff
 		value = checkInvalid()
+		//return if (value != null) value else maybeHelp()
 		if (value != null)
 			return value
 

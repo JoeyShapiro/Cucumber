@@ -128,9 +128,8 @@ fun main(args: Array<String>) {
 	val modpackZip = flagParser.flagNone(0, "", "The zip of the modpack import.")
 	var project = flagParser.flagString("out", "o", ".", "The project folder to use. If stuff inside, will create subfolder.")
 	val shouldSign = flagParser.flagBool("sign", "s", "If set, will sign eula.txt.")
-	// this is required to help, don't like it though. no i have to, how else would it exit
-	// TODO what about invalid; flagParser.parse(), have to, print and quit if string is not null
-	val helpText = flagParser.maybeHelp()
+	// check for help or invalid, print and return
+	val helpText = flagParser.parse()
 	if (helpText != null) {
 		println(helpText)
 		return
