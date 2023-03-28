@@ -133,7 +133,6 @@ fun main(args: Array<String>) {
 							text = it.groupValues[2]
 						)
 					}.toList()
-					println("Found modlist for ${modlist.size} mods")
 				}
 			}
 		}
@@ -168,7 +167,6 @@ fun main(args: Array<String>) {
 	}
 
 	// download each mod
-	println("Downloading ${mods.size} mods")
 	ProgressBar("Downloading", mods.size.toLong()).use { pb ->
 		for	(mod in mods) {
 			pb.extraMessage = mod.value.listed.text
