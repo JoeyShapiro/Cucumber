@@ -153,7 +153,7 @@ fun main(args: Array<String>) {
 	}
 
 	var manifest: Manifest? = null // isn't initialized, makes sense
-	var modlist: List<ModListed> = mutableListOf<ModListed>()
+	var modlist: List<ModListed> = mutableListOf()
 	val url = "https://mediafilez.forgecdn.net/files"
 	// best I can do is hard code. should get site to work
 	// this is not super stable, but it works
@@ -222,7 +222,7 @@ fun main(args: Array<String>) {
 			lateinit var files: CurseFiles
 			URL(details).openStream().use { input ->
 				InputStreamReader(input, "UTF-8").use { reader ->
-					files = json.decodeFromString<CurseFiles>(reader.readText())
+					files = json.decodeFromString(reader.readText())
 				}
 			}
 
@@ -241,7 +241,12 @@ fun main(args: Array<String>) {
 			val major = idPath.subSequence(0, 4).toString().toInt()
 			val minor = idPath.subSequence(4, 7).toString().toInt()
 			val jarUrl = URL("$url/$major/$minor/$encFilename")
+			// can not easily show each byte being downloaded, not worth it, maybe another time
 			val n = jarUrl.openStream().use { Files.copy(it, Paths.get("$project/mods/${file.fileName}")) }
+			if (n != file.fileLength) {
+				println("Warning: ${file.fileName} Downloaded ${n}B, but should be ${file.fileLength}B")
+			}
+
 			pb.step()
 		}
 	}
