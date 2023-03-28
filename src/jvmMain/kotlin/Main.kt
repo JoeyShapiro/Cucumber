@@ -122,19 +122,14 @@ fun main(args: Array<String>) {
 	println("Hello, Kotlin/Java!")
 	println("bitch")
 	// TODO update
-	// use out as project folder
-	// create the folder for their server project
 	val flagParser = FlagParser(args)
-	//// old way
-	val argMap = flagParser.parseArgs(args)
-	println(flagParser.FlagNone(0, "", ""))
-	val modpackZip = argMap["0"] ?: "" // TODO something better
-	var project = argMap["out"] ?: argMap["o"] ?: "."
 	// parses each flag in code
 	// if flag is found, set the value
-	// at any point, if 'help' is seen, print help, and nothing else
-	val shouldSign = flagParser.FlagBool("sign", "s", "If set, will sign eula.txt.")
+	val modpackZip = flagParser.flagNone(0, "", "The zip of the modpack import.")
+	var project = flagParser.flagString("out", "o", ".", "The project folder to use. If stuff inside, will create subfolder.")
+	val shouldSign = flagParser.flagBool("sign", "s", "If set, will sign eula.txt.")
 	// this is required to help, don't like it though. no i have to, how else would it exit
+	// TODO what about invalid; flagParser.parse(), have to, print and quit if string is not null
 	val helpText = flagParser.maybeHelp()
 	if (helpText != null) {
 		println(helpText)

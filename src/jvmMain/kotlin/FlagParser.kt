@@ -58,7 +58,28 @@ class FlagParser(programArgs: Array<String>) {
 			return null
 		}
 	}
-	fun FlagNone(index: Int, default: String, help: String): String {
+
+	private fun checkInvalid(): String? {
+		return null
+	}
+
+	fun parse(): String? {
+		var value: String? = null
+
+		// check for invalid stuff
+		value = checkInvalid()
+		if (value != null)
+			return value
+
+		// check for help
+		value = maybeHelp()
+		if (value != null)
+			return value
+
+		return value
+	}
+
+	fun flagNone(index: Int, default: String, help: String): String {
 		// add it to the list
 		flags["$index"] = Flag(
 			flag = "$index",
@@ -75,7 +96,7 @@ class FlagParser(programArgs: Array<String>) {
 		}
 	}
 
-	fun FlagString(flag: String, shorthand: String, default: String, help: String): String {
+	fun flagString(flag: String, shorthand: String, default: String, help: String): String {
 		// add it to the list
 		flags[flag] = Flag(
 			flag,
@@ -94,7 +115,7 @@ class FlagParser(programArgs: Array<String>) {
 		return default
 	}
 
-	fun FlagBool(flag: String, shorthand: String, help: String): Boolean {
+	fun flagBool(flag: String, shorthand: String, help: String): Boolean {
 		// add it to the list
 		flags[flag] = Flag(
 			flag,
@@ -113,7 +134,7 @@ class FlagParser(programArgs: Array<String>) {
 		return false
 	}
 
-	fun FlagBoolSettable(flag: String, shorthand: String, default: Boolean, help: String): Boolean {
+	fun flagBoolSettable(flag: String, shorthand: String, default: Boolean, help: String): Boolean {
 		// add it to the list
 		flags[flag] = Flag(
 			flag,
