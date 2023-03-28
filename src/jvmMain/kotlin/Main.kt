@@ -119,7 +119,6 @@ fun aptInput(question: String): Boolean {
 }
 
 fun main(args: Array<String>) {
-	// TODO update
 	val flagParser = FlagParser(args)
 	// parses each flag in code
 	// if flag is found, set the value
@@ -217,7 +216,7 @@ fun main(args: Array<String>) {
 	// create mods folder
 	try {
 		Files.createDirectory(Paths.get("$project/mods"))
-	} catch (e: FileAlreadyExistsException) {
+	} catch (e: FileAlreadyExistsException) { // accounts for update
 		println("mods folder already created")
 	}
 
@@ -253,86 +252,97 @@ fun main(args: Array<String>) {
 			val minor = idPath.subSequence(4, 7).toString().toInt()
 			val jarUrl = URL("$url/$major/$minor/$encFilename")
 			// can not easily show each byte being downloaded, not worth it, maybe another time
-			val n = jarUrl.openStream().use { Files.copy(it, Paths.get("$project/mods/${file.fileName}")) }
-			if (n != file.fileLength) {
-				println("Warning: ${file.fileName} Downloaded ${n}B, but should be ${file.fileLength}B")
+			try {
+				val n = jarUrl.openStream().use { Files.copy(it, Paths.get("$project/mods/${file.fileName}")) }
+				if (n != file.fileLength) {
+					println("Warning: ${file.fileName} Downloaded ${n}B, but should be ${file.fileLength}B")
+				}
+			} catch (e: FileAlreadyExistsException) {
+				if (!shouldUpdate) {
+					println("Already downloaded ${file.fileName}")
+				}
 			}
 
 			pb.step()
 		}
 	}
 
-	// bypasses adfoc
-	// maybe find a way to use adfoc for payment
-	// and the flex
-	// https://maven.minecraftforge.net/net/minecraftforge/forge/1.18.2-40.1.68/forge-1.18.2-40.1.68-installer.jar
-	println("Downloading ${manifest.minecraft.modLoaders.size} modloaders")
-	// late init can be used instead of null, but not val
-	lateinit var jarForge: String
-	for (modloader in manifest.minecraft.modLoaders) {
-		// check the type
-		val parts = modloader.id.split('-')
-		if (parts[0] != "forge") {
-			println("${parts[0]} is currently not supported")
-			continue
-		}
-
-		// download the file
-		jarForge = "${parts[0]}-${manifest.minecraft.version}-${parts[1]}-installer.jar"
-		println("Downloading $jarForge")
-		val jarUrl = URL("https://maven.minecraftforge.net/net/minecraftforge/forge/${manifest.minecraft.version}-${parts[1]}/${jarForge}")
-		jarUrl.openStream().use { Files.copy(it, Paths.get("${project}/${jarForge}")) }
-	}
-
-	// install the server
-	// java -jar forge.jar --installServer "./"
-	println("Installing Forge Server")
-	val result = ProcessBuilder("java", "-jar", "$project/$jarForge", "--installServer", project)
-		.redirectOutput(ProcessBuilder.Redirect.INHERIT)
-		.redirectError(ProcessBuilder.Redirect.INHERIT)
-		.start().waitFor()
-
-	if (result != 0) {
-		println("Server install failed")
-	}
-
-	// fix run script
-	// good enough; I feel you can have it run anywhere though
-	var text = File("$project/run.sh").readLines()
-	File("$project/run.sh").printWriter().use {
-		for (line in text) {
-			if (line.startsWith("java")) {
-				it.println("dir=\"\$( cd \"\$( dirname \"\${BASH_SOURCE[0]}\" )\" && pwd)\"")
-				it.println("pushd \$dir")
-				it.println(line)
-				it.println("popd")
-			} else { // if we don't care about the line
-				it.println(line)
+	if (!shouldUpdate) {
+		// bypasses adfoc
+		// maybe find a way to use adfoc for payment
+		// and the flex
+		// https://maven.minecraftforge.net/net/minecraftforge/forge/1.18.2-40.1.68/forge-1.18.2-40.1.68-installer.jar
+		println("Downloading ${manifest.minecraft.modLoaders.size} modloaders")
+		// late init can be used instead of null, but not val
+		lateinit var jarForge: String
+		for (modloader in manifest.minecraft.modLoaders) {
+			// check the type
+			val parts = modloader.id.split('-')
+			if (parts[0] != "forge") {
+				println("${parts[0]} is currently not supported")
+				continue
 			}
+
+			// download the file
+			jarForge = "${parts[0]}-${manifest.minecraft.version}-${parts[1]}-installer.jar"
+			println("Downloading $jarForge")
+			val jarUrl = URL("https://maven.minecraftforge.net/net/minecraftforge/forge/${manifest.minecraft.version}-${parts[1]}/${jarForge}")
+			jarUrl.openStream().use { Files.copy(it, Paths.get("${project}/${jarForge}")) }
 		}
-	}
 
-	// dry run forge launcher (they give a run.sh :D)
-	ProcessBuilder("$project/run.sh").start().waitFor()
+		// install the server
+		// java -jar forge.jar --installServer "./"
+		println("Installing Forge Server")
+		val result = ProcessBuilder("java", "-jar", "$project/$jarForge", "--installServer", project)
+			.redirectOutput(ProcessBuilder.Redirect.INHERIT)
+			.redirectError(ProcessBuilder.Redirect.INHERIT)
+			.start().waitFor()
 
-	// option to maybe sign eula
-	if (shouldSign) {
-		text = File("$project/eula.txt").readLines()
-		File("$project/eula.txt").printWriter().use {
+		if (result != 0) {
+			println("Server install failed")
+		}
+
+		// fix run script
+		// good enough; I feel you can have it run anywhere though
+		var text = File("$project/run.sh").readLines()
+		File("$project/run.sh").printWriter().use {
 			for (line in text) {
-				if (line.startsWith("eula")) {
-					it.println("eula=true")
-				} else {
+				if (line.startsWith("java")) {
+					it.println("dir=\"\$( cd \"\$( dirname \"\${BASH_SOURCE[0]}\" )\" && pwd)\"")
+					it.println("pushd \$dir")
+					it.println(line)
+					it.println("popd")
+				} else { // if we don't care about the line
 					it.println(line)
 				}
 			}
 		}
+
+		// dry run forge launcher (they give a run.sh :D)
+		ProcessBuilder("$project/run.sh").start().waitFor()
+
+		// option to maybe sign eula
+		if (shouldSign) {
+			text = File("$project/eula.txt").readLines()
+			File("$project/eula.txt").printWriter().use {
+				for (line in text) {
+					if (line.startsWith("eula")) {
+						it.println("eula=true")
+					} else {
+						it.println(line)
+					}
+				}
+			}
+		} else {
+			println("You must sign the EULA file before starting the server")
+		}
+
+		// cleanup
+		Files.deleteIfExists(Paths.get("$project/$jarForge"))
+
+		println("The mod pack has successfully been created")
 	} else {
-		println("You must sign the EULA file before starting the server")
+		println("The mod pack has successfully been updated")
 	}
 
-	// cleanup
-	Files.deleteIfExists(Paths.get("$project/$jarForge"))
-
-	println("The mod pack has successfully been created")
 }
