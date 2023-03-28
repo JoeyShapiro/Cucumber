@@ -2,7 +2,14 @@ package com.garden.joeyshapiro
 
 class FlagParser(programArgs: Array<String>) {
 	private val args: Array<String> = programArgs
-	private val flags = mutableMapOf<String, Flag>() // dictionary is always nicer, i think
+	private val flags = mutableMapOf(
+		Pair("help", Flag( // add help right away
+			flag = "help",
+			shorthand = "h",
+			default = "",
+			help = "Shows the help text."
+		))
+	) // dictionary is always nicer, I think
 
 	fun parseArgs(args: Array<String>): MutableMap<String, String> {
 		val parsedArgs = mutableMapOf<String, String>()
@@ -30,7 +37,7 @@ class FlagParser(programArgs: Array<String>) {
 		return parsedArgs
 	}
 
-	fun getHelp(): String {
+	private fun getHelp(): String {
 		var helpText = ""
 
 		for (flag in flags) {
@@ -78,11 +85,8 @@ class FlagParser(programArgs: Array<String>) {
 		)
 
 		// check if the value is there
-		if (args.size >= index) { // if array to small, it will fail instead of returning null
-			return args[index]
-		} else {
-			return default
-		}
+		// if array to small, it will fail instead of returning null
+		return if (args.size >= index) args[index] else default
 	}
 
 	fun flagString(flag: String, shorthand: String, default: String, help: String): String {

@@ -119,8 +119,6 @@ fun aptInput(question: String): Boolean {
 }
 
 fun main(args: Array<String>) {
-	println("Hello, Kotlin/Java!")
-	println("bitch")
 	// TODO update
 	val flagParser = FlagParser(args)
 	// parses each flag in code
@@ -134,6 +132,10 @@ fun main(args: Array<String>) {
 		println(helpText)
 		return
 	}
+
+	// needed stuff
+	println("Hello, Kotlin/Java!")
+	println("bitch")
 
 	// create the output folder
 	// try as value and try when
